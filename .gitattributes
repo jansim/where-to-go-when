@@ -1,0 +1,5 @@
+data/temp_2020.csv filter=lfs diff=lfs merge=lfs -text
+data/wikivoyage-listings-en-latest.csv filter=lfs diff=lfs merge=lfs -text
+data/Complete_TAVG_EqualArea.nc filter=lfs diff=lfs merge=lfs -text
+data/ao.json filter=lfs diff=lfs merge=lfs -text
+data/mp_routes.csv filter=lfs diff=lfs merge=lfs -text

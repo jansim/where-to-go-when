@@ -1,0 +1,9 @@
+.Rhistory
+.Rproj.user
+.RData
+.Ruserdata
+node_modules
+dist
+
+# Local Netlify folder
+.netlify

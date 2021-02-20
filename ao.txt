@@ -1,0 +1,3 @@
+Atlas obscura data from https://www.atlasobscura.com/articles/all-places-in-the-atlas-on-one-map
+
+Example API url: https://www.atlasobscura.com/places/4176.json?place_only=1
