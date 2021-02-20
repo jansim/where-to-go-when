@@ -72,6 +72,18 @@ const iconMapping = [
   return map
 })
 
+const INITIAL_VIEW_STATE = {
+  longitude: -1.415727,
+  latitude: 52.232395,
+  zoom: 3.5,
+  minZoom: 1,
+  maxZoom: 15,
+  pitch: 40.5,
+  bearing: 0
+};
+
+const ZOOMED_IN_THRESHOLD = 7
+
 /* eslint-disable react/no-deprecated */
 export default function App({
   data,
@@ -80,17 +92,8 @@ export default function App({
   upperPercentile = 100,
   coverage = 1
 }) {
-  const [viewState, setViewState] = useState({
-    longitude: -1.415727,
-    latitude: 52.232395,
-    zoom: 3.5,
-    minZoom: 1,
-    maxZoom: 15,
-    pitch: 40.5,
-    bearing: 0
-  });
 
-  const zoomedIn = viewState.zoom > 6
+  const [zoomedIn, setZoomedIn] = useState(INITIAL_VIEW_STATE.zoom > ZOOMED_IN_THRESHOLD)
 
   function getTooltip({object}) {
     if (!object) {
@@ -192,8 +195,10 @@ export default function App({
     <DeckGL
       layers={layers}
       effects={[lightingEffect]}
-      initialViewState={viewState}
-      onViewStateChange={e => setViewState(e.viewState)}
+      initialViewState={INITIAL_VIEW_STATE}
+      onViewStateChange={e => {
+        setZoomedIn(e.viewState.zoom > ZOOMED_IN_THRESHOLD)
+      }}
       controller={true}
       getTooltip={getTooltip}
     >
