@@ -9,7 +9,7 @@ import DeckGL from '@deck.gl/react';
 import "./style.css";
 
 // Source data CSV
-const DATA_URL = 'data_cleaned/wiki_voyage.csv';
+const DATA_URL = 'data_cleaned/combined_activities.csv';
 // const DATA_URL = 'data_cleaned/heatmap-data.csv';
 // const DATA_URL = 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/3d-heatmap/heatmap-data.csv'; // eslint-disable-line
 
@@ -17,7 +17,7 @@ const categories = [
   {
     id: "camping",
     emoji: "🏕️",
-    label: "Camping"
+    label: "Camping!"
   },
   {
     id: "see",
@@ -45,6 +45,14 @@ const categories = [
     label: "City trips"
   }
 ]
+const labels = {}
+categories.map(cat => {
+  labels[cat.id] = cat.label
+})
+const emojis = {}
+categories.map(cat => {
+  emojis[cat.id] = cat.emoji
+})
 
 const ambientLight = new AmbientLight({
   color: [255, 255, 255],
@@ -87,7 +95,7 @@ export const colorRange = [
 const fallbackIcon = "see"
 const iconMapping = [
   {},
-  "see", "city", "camping", "climbing", "do"
+  "see", "city", "camping", "climbing", "do", "ao"
 ].reduce((map, value, index) => {
   map[value] = {
     x: (index - 1) * 160,
@@ -151,7 +159,7 @@ export default function App({
       })
       let output = `${agg_count} points.\n`
       Object.keys(cat_counts).map(function(key, index) {
-        output += `\n${key}: ${cat_counts[key]}`
+        output += `\n${emojis[key] || key}: ${cat_counts[key]}`
       })
       return output
     } else {
@@ -238,14 +246,43 @@ export default function App({
         <span>What are you interested in?</span>
 
         <div>
-          {
+          {/* {
             categories.map(cat => (
               <label key={`check-${cat.id}`}>
                 <input type="checkbox" name={cat.id} checked={state[cat.id]} onChange={handleInputChange}/>
                 <span> {`${cat.emoji} ${cat.label}`}</span>
               </label>
             ))
-          }
+}  */}
+            <label>
+              <input type="checkbox" name="camping" checked={state['camping']} onChange={handleInputChange}/>
+              <span> 🏕️ Camping! </span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="see" checked={state['see']} onChange={handleInputChange}/>
+              <span> ✨ Sightseeing </span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="ao" checked={state['ao']} onChange={handleInputChange}/>
+              <span> 👻 Obscure Sightseeing </span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="do" checked={state['do']} onChange={handleInputChange}/>
+              <span> 🏃 Activities </span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="climbing" checked={state['climbing']} onChange={handleInputChange}/>
+              <span> 🧗 Climbing </span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="city" checked={state['city']} onChange={handleInputChange}/>
+              <span> 🏙️ City trips </span>
+            </label>
         </div>
       </div>
 
