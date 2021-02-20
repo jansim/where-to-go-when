@@ -1,7 +1,9 @@
 // NOTE: To use this example standalone (e.g. outside of deck.gl repo)
 // delete the local development overrides at the bottom of this file
 
+const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 module.exports = {
   mode: 'development',
@@ -31,9 +33,21 @@ module.exports = {
     ]
   },
 
+  devServer: {
+    contentBase: path.join(__dirname, 'static')
+  },
+
   plugins: [
     new HtmlWebpackPlugin({
       template: 'index.html'
-    })
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "static",
+          to: "dist"
+        }
+      ],
+    }),
   ]
 };
