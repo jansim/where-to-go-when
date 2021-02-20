@@ -49,14 +49,6 @@ export const colorRange = [
   [209, 55, 78]
 ];
 
-function getTooltip({object}) {
-  if (!object) {
-    return null;
-  }
-
-  return JSON.stringify(object);
-}
-
 const colorCategories = {
   camping: [228,26,28],
   city: [55,126,184],
@@ -69,7 +61,7 @@ const colorCategories = {
 const fallbackIcon = "see"
 const iconMapping = [
   {},
-  "see", "city", "camping", "climbing", "go"
+  "see", "city", "camping", "climbing", "do"
 ].reduce((map, value, index) => {
   map[value] = {
     x: (index - 1) * 160,
@@ -99,6 +91,39 @@ export default function App({
   });
 
   const zoomedIn = viewState.zoom > 6
+
+  function getTooltip({object}) {
+    if (!object) {
+      return null;
+    }
+
+    if (object.points) {
+      let cat_counts = {}
+      let agg_count = 0
+      object.points.map(value => {
+        agg_count++
+        let cat = value && value.source && value.source.cat
+        cat_counts[cat] = (cat_counts[cat] || 0) + 1
+      })
+      let output = `${agg_count} points.\n`
+      Object.keys(cat_counts).map(function(key, index) {
+        output += `\n${key}: ${cat_counts[key]}`
+      })
+      return output
+    } else {
+      let output = `${object.title}\n`
+      if (object.phone) {
+        output += `\ntel: ${object.phone}`
+      }
+      if (object.url) {
+        output += `\nurl: ${object.url}`
+      }
+      if (object.cat) {
+        output += `\ncategory: ${object.cat}`
+      }
+      return output
+    }
+  }
 
   const hexLayer = new HexagonLayer({
     id: 'heatmap',
@@ -143,7 +168,7 @@ export default function App({
       if (d.cat in iconMapping) {
         return d.cat
       } else {
-        console.warn("Unsupported icon type", d)
+        console.warn("Unsupported icon type", d.cat)
         return fallbackIcon
       }
     },
