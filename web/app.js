@@ -66,6 +66,20 @@ const colorCategories = {
   other: [255,127,0]
 };
 
+const fallbackIcon = "see"
+const iconMapping = [
+  {},
+  "see", "city", "camping", "climbing", "go"
+].reduce((map, value, index) => {
+  map[value] = {
+    x: (index - 1) * 160,
+    y: 0,
+    width: 160,
+    height: 160
+  }
+  return map
+})
+
 /* eslint-disable react/no-deprecated */
 export default function App({
   data,
@@ -117,28 +131,26 @@ export default function App({
     // alphaCutoff: 0.05,
     // billboard: true,
     // getAngle: 0,
-    getColor: (d) => {
-      if (d.cat in colorCategories) {
-        return colorCategories[d.cat]
+    // getColor: (d) => {
+    //   if (d.cat in colorCategories) {
+    //     return colorCategories[d.cat]
+    //   } else {
+    //     // Unmatched
+    //     return [255, 0, 0]
+    //   }
+    // },
+    getIcon: d => {
+      if (d.cat in iconMapping) {
+        return d.cat
       } else {
-        // Unmatched
-        return [255, 0, 0]
+        console.warn("Unsupported icon type", d)
+        return fallbackIcon
       }
     },
-    getIcon: d => 'marker',
     // getPixelOffset: [0, 0],
     getPosition: d => [Number(d.lon || d.lng), Number(d.lat)],
-    iconAtlas: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.png',
-    iconMapping: {
-      marker: {
-        x: 0,
-        y: 0,
-        width: 128,
-        height: 128,
-        anchorY: 128,
-        mask: true
-      }
-    },
+    iconAtlas: 'img/category_icons.png',
+    iconMapping,
     sizeScale: 2000,
     sizeUnits: 'meters',
     pickable: true,
