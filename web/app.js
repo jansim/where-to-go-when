@@ -6,10 +6,45 @@ import {HexagonLayer} from '@deck.gl/aggregation-layers';
 import {IconLayer} from '@deck.gl/layers';
 import DeckGL from '@deck.gl/react';
 
+import "./style.css";
+
 // Source data CSV
 const DATA_URL = 'data_cleaned/wiki_voyage.csv';
 // const DATA_URL = 'data_cleaned/heatmap-data.csv';
 // const DATA_URL = 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/3d-heatmap/heatmap-data.csv'; // eslint-disable-line
+
+const categories = [
+  {
+    id: "camping",
+    emoji: "🏕️",
+    label: "Camping"
+  },
+  {
+    id: "see",
+    emoji: "✨",
+    label: "Sightseeing"
+  },
+  {
+    id: "ao",
+    emoji: "👻",
+    label: "Obscure Sightseeing"
+  },
+  {
+    id: "do",
+    emoji: "🏃",
+    label: "Activities"
+  },
+  {
+    id: "climbing",
+    emoji: "🧗",
+    label: "Climbing"
+  },
+  {
+    id: "city",
+    emoji: "🏙️",
+    label: "City trips"
+  }
+]
 
 const ambientLight = new AmbientLight({
   color: [255, 255, 255],
@@ -49,15 +84,6 @@ export const colorRange = [
   [209, 55, 78]
 ];
 
-const colorCategories = {
-  camping: [228,26,28],
-  city: [55,126,184],
-  do: [77,175,74],
-  go: [152,78,163],
-  see: [255,255,51],
-  other: [255,127,0]
-};
-
 const fallbackIcon = "see"
 const iconMapping = [
   {},
@@ -84,6 +110,12 @@ const INITIAL_VIEW_STATE = {
 
 const ZOOMED_IN_THRESHOLD = 7
 
+// Create state for checkboxes
+const category_state = {}
+categories.map(cat => {
+  category_state[cat.id] = true
+})
+
 /* eslint-disable react/no-deprecated */
 export default function App({
   data,
@@ -92,8 +124,17 @@ export default function App({
   upperPercentile = 100,
   coverage = 1
 }) {
+  const [state, setState] = useState({
+    zoomedIn: INITIAL_VIEW_STATE.zoom > ZOOMED_IN_THRESHOLD,
+    ...category_state
+  })
 
-  const [zoomedIn, setZoomedIn] = useState(INITIAL_VIEW_STATE.zoom > ZOOMED_IN_THRESHOLD)
+  function handleInputChange(event) {
+    const target = event.target;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+    const name = target.name;
+    setState({ [name]: value });
+  }
 
   function getTooltip({object}) {
     if (!object) {
@@ -131,7 +172,7 @@ export default function App({
   const hexLayer = new HexagonLayer({
     id: 'heatmap',
 
-    visible: !zoomedIn,
+    visible: !state.zoomedIn,
 
     colorRange,
     coverage,
@@ -152,7 +193,7 @@ export default function App({
   const iconLayer = new IconLayer({
     id: 'IconLayer',
     data,
-    visible: zoomedIn,
+    visible: state.zoomedIn,
 
     /* props from IconLayer class */
 
@@ -192,18 +233,35 @@ export default function App({
   ];
 
   return (
-    <DeckGL
-      layers={layers}
-      effects={[lightingEffect]}
-      initialViewState={INITIAL_VIEW_STATE}
-      onViewStateChange={e => {
-        setZoomedIn(e.viewState.zoom > ZOOMED_IN_THRESHOLD)
-      }}
-      controller={true}
-      getTooltip={getTooltip}
-    >
-      <StaticMap reuseMaps mapStyle={mapStyle} preventStyleDiffing={true} />
-    </DeckGL>
+    <div>
+      <div className="controls">
+        <span>What are you interested in?</span>
+
+        <div>
+          {
+            categories.map(cat => (
+              <label key={`check-${cat.id}`}>
+                <input type="checkbox" name={cat.id} checked={state[cat.id]} onChange={handleInputChange}/>
+                <span> {`${cat.emoji} ${cat.label}`}</span>
+              </label>
+            ))
+          }
+        </div>
+      </div>
+
+      <DeckGL
+        layers={layers}
+        effects={[lightingEffect]}
+        initialViewState={INITIAL_VIEW_STATE}
+        onViewStateChange={e => {
+          setState({zoomedIn: e.viewState.zoom > ZOOMED_IN_THRESHOLD})
+        }}
+        controller={true}
+        getTooltip={getTooltip}
+      >
+        <StaticMap reuseMaps mapStyle={mapStyle} preventStyleDiffing={true} />
+      </DeckGL>
+    </div>
   );
 }
 
