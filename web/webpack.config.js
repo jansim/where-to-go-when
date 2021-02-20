@@ -45,7 +45,7 @@ module.exports = {
       patterns: [
         {
           from: "static",
-          to: "dist"
+          to: ""
         }
       ],
     }),
