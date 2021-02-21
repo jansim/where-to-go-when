@@ -56,6 +56,34 @@ categories.map(cat => {
   emojis[cat.id] = cat.emoji
 })
 
+// Average temperatures are generally lower here,
+// as they also factor in nighttime!
+const temperatureModes = [
+  {
+    id: "absolute",
+    type: "absolute",
+    label: "🌡️ I like it exact"
+  },
+  {
+    id: "rel_warm",
+    type: "relative",
+    targetAvgTemp: 19,
+    label: "☀️ I like it warm"
+  },
+  {
+    id: "rel_hot",
+    type: "relative",
+    targetAvgTemp: 25,
+    label: "🏖️ I like it hot"
+  },
+  {
+    id: "rel_cold",
+    type: "relative",
+    targetAvgTemp: 0,
+    label: "🏂️ I like it icy"
+  }
+]
+
 const ambientLight = new AmbientLight({
   color: [255, 255, 255],
   intensity: 1.0
@@ -141,6 +169,7 @@ class App extends React.Component {
       month: (new Date).getMonth(),
       data: null,
       zoomedIn: INITIAL_VIEW_STATE.zoom > ZOOMED_IN_THRESHOLD,
+      temp_mode: temperatureModes[0].id,
       ...category_state
     };
 
@@ -281,7 +310,8 @@ class App extends React.Component {
       sizeMaxPixels: 60
     });
 
-    const temperatureColorScale = scaleLinear()
+    const active_temp_mode = temperatureModes.filter(mode => mode.id === this.state.temp_mode)[0]
+    const absoluteTemperatureColorScale = scaleLinear()
       .domain([
         -20,
         0,
@@ -298,6 +328,26 @@ class App extends React.Component {
         [254,178,76],
         [240,59,32]
       ]);
+    const getFillColorAbsolute = (d) => absoluteTemperatureColorScale(d[months[this.state.month]])
+    const relativeTemperatureColorScale = scaleLinear()
+      .domain([
+        60,
+        40,
+        10,
+        5,
+        0
+      ])
+      .range([
+        [215,25,28],
+        [253,174,97],
+        [255,255,191],
+        [166,217,106],
+        [26,150,65]
+      ]);
+    const optimalTemperature = active_temp_mode.targetAvgTemp
+    const getFillColorRelative = (d) => relativeTemperatureColorScale(Math.abs(optimalTemperature - d[months[this.state.month]]))
+
+    const getFillColor = active_temp_mode.type === 'absolute' ? getFillColorAbsolute : getFillColorRelative
     const h3Layer = new H3HexagonLayer({
       id: 'coverage',
       data: 'data_cleaned/avg_temp_2020_h3.json',
@@ -305,10 +355,10 @@ class App extends React.Component {
       stroked: false,
       extruded: false,
       pickable: true,
-      getFillColor: d => temperatureColorScale(d[months[this.state.month]]),
+      getFillColor,
       opacity: 0.1,
       updateTriggers: {
-        getFillColor: this.state.month
+        getFillColor: [this.state.month, this.state.temp_mode]
       }
     });
 
@@ -329,6 +379,19 @@ class App extends React.Component {
                 <label key={`check-${cat.id}`}>
                   <input type="checkbox" name={cat.id} checked={this.state[cat.id]} onChange={this.handleInputChange}/>
                   <span> {`${cat.emoji} ${cat.label}`}</span>
+                </label>
+              ))
+            }
+          </div>
+
+          <br/>
+
+          <div>
+            {
+              temperatureModes.map(mode => (
+                <label key={`radio-${mode.id}`}>
+                  <input type="radio" name="temp_mode" value={mode.id} checked={this.state.temp_mode === mode.id} onChange={this.handleInputChange}/>
+                  <span> {`${mode.label}`}</span>
                 </label>
               ))
             }
