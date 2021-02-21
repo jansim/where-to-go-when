@@ -5,5 +5,7 @@
 node_modules
 dist
 
+data/ao_JSON_files/
+
 # Local Netlify folder
 .netlify
