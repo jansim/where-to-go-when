@@ -4,7 +4,9 @@ import {StaticMap} from 'react-map-gl';
 import {AmbientLight, PointLight, LightingEffect} from '@deck.gl/core';
 import {HexagonLayer} from '@deck.gl/aggregation-layers';
 import {IconLayer} from '@deck.gl/layers';
+import {H3HexagonLayer} from '@deck.gl/geo-layers';
 import DeckGL from '@deck.gl/react';
+import {scaleLinear} from 'd3-scale';
 
 import "./style.css";
 
@@ -122,6 +124,8 @@ const radius = 5000
 const upperPercentile = 100
 const coverage = 1
 
+const months = ["jan", "feb", "mar", "apr", "may", "june", "july", "aug", "sep", "oct", "nov", "dec"]
+
 // Create state for checkboxes
 const category_state = {}
 categories.map(cat => {
@@ -132,6 +136,7 @@ class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      month: (new Date).getMonth(),
       data: null,
       zoomedIn: INITIAL_VIEW_STATE.zoom > ZOOMED_IN_THRESHOLD,
       ...category_state
@@ -267,7 +272,40 @@ class App extends React.Component {
       sizeMaxPixels: 60
     });
 
+    const temperatureColorScale = scaleLinear()
+      .domain([
+        -20,
+        0,
+        10,
+        20,
+        30,
+        50
+      ])
+      .range([
+        [49,130,189],
+        [158,202,225],
+        [222,235,247],
+        [255,237,160],
+        [254,178,76],
+        [240,59,32]
+      ]);
+    // To get deck.gl to recognize the prop change
+    const getFillColorFunctions = months.map(month => {
+      return (d) => temperatureColorScale(d[month])
+    })
+    const h3Layer = new H3HexagonLayer({
+      id: 'coverage',
+      data: 'data_cleaned/avg_temp_2020_h3.json',
+      getHexagon: d => d.hex,
+      stroked: false,
+      extruded: false,
+      // getFillColor: d => temperatureColorScale(d[months[this.state.month]]),
+      getFillColor: getFillColorFunctions[this.state.month],
+      opacity: 0.1
+    });
+
     const layers = [
+      h3Layer,
       hexLayer,
       iconLayer
     ];
@@ -287,6 +325,11 @@ class App extends React.Component {
               ))
             }
           </div>
+
+          <label>
+            Month: {months[this.state.month]}
+            <input type="range" id="month" name="month" min="0" max="11" value={this.state["month"]} onChange={this.handleInputChange}/>
+          </label>
         </div>
 
         <DeckGL
