@@ -1,19 +1,6 @@
 library(tidyverse)
-library(rjson)
-library(jsonlite)
-library(curl)
 
-### curl experiments ###
-#h <- new_handle(copypostfields = "moo=moomooo")
-#handle_setheaders(h,
-                  #"Content-Type" = "text/moo",
-                  #"Cache-Control" = "no-cache",
-                  #"User-Agent" = "A cow"
-#)
-                  
-
-
-# loading datasets
+# ==== Wiki Voyage Dataset ====
 wiki <- read_csv(
   "data/wikivoyage-listings-en-latest.csv",
   col_types = cols(
@@ -33,27 +20,6 @@ wiki <- read_csv(
 
 mp_routes <- read_csv("data/mp_routes.csv")
 
-ao <- read_json("data/ao.json", simplifyVector = TRUE)
-
-for (i in ao$id) {
-  path <- paste0("data/ao_JSON_files/output",i, ".json")
-  if (!file.exists(path)) {
-    print(path)
-    fileConn<-file(path)
-    con <- curl(paste0("https://www.atlasobscura.com/places/", i,".json?place_only=1"))
-    writeLines(readLines(con), fileConn)
-    close(fileConn)
-  
-    Sys.sleep(0.1)
-  }
-}
-
-
-ao_web_infos <- data.frame()
-for (path in list.files("data/ao_JSON_files", full.names = TRUE)) {
-  ao_web_infos <- rbind(ao_web_infos, read_json(path))
-}
-  
 # filtering activities
 wiki <- wiki %>%
   filter(!is.na(lat), !is.na(lon)) %>%
@@ -90,7 +56,7 @@ wiki_final$description <- paste(wiki_final$url,
                                 "\n",
                                 wiki_final$phone)
 
-
+# ==== Climbing Route Data ====
 mp_routes$description <- paste("Difficulty:",
                                mp_routes$Rating
                                #, 
@@ -115,15 +81,27 @@ final_mp$title <- final_mp$Route
 
 final_mp <- final_mp[,c(4,5,6,7,8)]
 
-#adding atlas obscura colums
-ao$cat <- "ao"
-ao$title <- ao$id
-ao$description <- " "
-ao$lon <- ao$lng
+# ==== Adding atlas obscura data ====
+ao_points <- jsonlite::read_json("data/ao.json", simplifyVector = TRUE)
+ao_meta <- read_csv("data/ao_combined_json_info.csv")
+ao <- ao_points %>% 
+  left_join(ao_meta, by = "id") %>%
+  rename(
+    lon = lng
+  ) %>% 
+  mutate(
+    cat = "ao",
+    description = ao$subtitle
+  )
 
-#combining data
-combinedData <- rbind(wiki_final[,c(1,2,3,4,7)], final_mp, ao[,c(2,4,5,6,7)])
+# ==== Combining Data ====
+final_columns <- c("cat", "lat", "lon", "title", "description")
+combinedData <- rbind(
+  wiki_final[,c(1,2,3,4,7)],
+  final_mp,
+  ao[,final_columns]
+)
 
 #saving data
-write_csv(combinedData, "web/static/data_cleaned/combined_activities.csv")
+write_csv(combinedData, "web/static/data_cleaned/combined_activities.csv", na = "")
 
