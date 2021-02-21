@@ -10,74 +10,95 @@ months <- c(
 )
 months <- tolower(months)
 
-nc_data <- nc_open('data/Complete_TAVG_EqualArea.nc')
-
-print(nc_data)
-
-lon <- ncvar_get(nc_data, "longitude")
-lat <- ncvar_get(nc_data, "latitude")
-time <- ncvar_get(nc_data, "time")
-
-temp <- ncvar_get(nc_data, "temperature")
-colnames(temp) <- time
-
-climp <- ncvar_get(nc_data, "climatology")
-colnames(climp) <- months
-
-temp_last_year <- temp[,time > 2020 & time < 2021]
-colnames(temp_last_year) <- months
-
-abs_temp_last_year <- climp + temp_last_year
-
-temperatures_last_year <- cbind(
-  as.data.frame(abs_temp_last_year),
-  data.frame(
-    lat,
-    lon
+extract_temp_data <- function (type = 'TAVG', year = 2020) {
+  nc_data <- nc_open(paste0('data/Complete_', type, '_EqualArea.nc'))
+  
+  print(nc_data)
+  
+  lon <- ncvar_get(nc_data, "longitude")
+  lat <- ncvar_get(nc_data, "latitude")
+  time <- ncvar_get(nc_data, "time")
+  
+  temp <- ncvar_get(nc_data, "temperature")
+  colnames(temp) <- time
+  
+  climp <- ncvar_get(nc_data, "climatology")
+  colnames(climp) <- months
+  
+  temp_last_year <- temp[,time > year & time < (year + 1)]
+  colnames(temp_last_year) <- months
+  
+  abs_temp_last_year <- climp + temp_last_year
+  
+  temperatures_last_year <- cbind(
+    as.data.frame(abs_temp_last_year),
+    data.frame(
+      lat,
+      lon
+    )
   )
-)
+  
+  return(temperatures_last_year)
+}
 
-write_csv(temperatures_last_year, file = "data/temp_2020.csv")
+avg_temperatures_last_year <- extract_temp_data(type = "TAVG", year = 2019)
+min_temperatures_last_year <- extract_temp_data(type = "TMIN", year = 2019)
+max_temperatures_last_year <- extract_temp_data(type = "TMAX", year = 2019)
 
-ggplot(temperatures_last_year) +
+ggplot(avg_temperatures_last_year) +
   geom_point(aes(x = lon, y = lat, color = jan))
 
-ggplot(temperatures_last_year) +
+ggplot(avg_temperatures_last_year) +
   geom_point(aes(x = lon, y = lat, color = july))
 
 
-jsonlite::write_json(temperatures_last_year, path = "web/static/data_cleaned/avg_temp_2020.json")
+jsonlite::write_json(avg_temperatures_last_year, path = "web/static/data_cleaned/avg_temp_2020.json")
 
 # Create spatial regions for temperature via H3 index
 # remotes::install_github("crazycapivara/h3forr")
 library(h3forr)
 
-points <- temperatures_last_year %>% 
-  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
-hex <- geo_to_h3(points, res = 2)
+hexify <- function (df) {
+  points <- df %>% 
+    sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+  hex <- geo_to_h3(points, res = 2)
+  
+  df %>%
+    select(-lat, -lon) %>%
+    mutate(hex) 
+}
 
-h3_to_geo_boundary(hex) %>% 
-  geo_boundary_to_sf %>% 
-  plot()
-
-temp_h3 <- temperatures_last_year %>%
-  select(-lat, -lon) %>%
-  mutate(hex)
+avg_temp_h3 <- hexify(avg_temperatures_last_year)
+min_temp_h3 <- hexify(min_temperatures_last_year)
+max_temp_h3 <- hexify(max_temperatures_last_year)
 
 # Mean number of obs per bin
-temp_h3 %>% count(hex) %>% pull(n) %>% mean()
+avg_temp_h3 %>% count(hex) %>% pull(n) %>% mean()
 
-hex_temp <- temp_h3 %>% 
+# Aggregate multiple hexagones toegether
+avg_hex_temp <- avg_temp_h3 %>% 
   group_by(hex) %>% 
   summarise(across(everything(), ~ mean(.)))
+min_hex_temp <- min_temp_h3 %>% 
+  group_by(hex) %>% 
+  summarise(across(everything(), ~ min(.))) %>% 
+  mutate(across(where(is.numeric), ~ round(.)))
+max_hex_temp <- max_temp_h3 %>% 
+  group_by(hex) %>% 
+  summarise(across(everything(), ~ max(.))) %>% 
+  mutate(across(where(is.numeric), ~ round(.)))
 
-ggplot(hex_temp$hex %>% h3_to_geo_boundary() %>% geo_boundary_to_sf()) +
-  geom_sf(aes(fill = hex_temp$july))
+hex_temp_all <- avg_hex_temp %>% 
+  left_join(min_hex_temp %>% rename_at(vars(-hex), ~ paste0(., "_min")), by = "hex") %>% 
+  left_join(max_hex_temp %>% rename_at(vars(-hex), ~ paste0(., "_max")), by = "hex")
 
-ggplot(hex_temp$hex %>% h3_to_geo_boundary() %>% geo_boundary_to_sf()) +
-  geom_sf(aes(fill = hex_temp$jan))
+ggplot(avg_hex_temp$hex %>% h3_to_geo_boundary() %>% geo_boundary_to_sf()) +
+  geom_sf(aes(fill = avg_hex_temp$july))
+
+ggplot(avg_hex_temp$hex %>% h3_to_geo_boundary() %>% geo_boundary_to_sf()) +
+  geom_sf(aes(fill = avg_hex_temp$jan))
 
 jsonlite::write_json(
-  hex_temp,
+  hex_temp_all,
   path = "web/static/data_cleaned/avg_temp_2020_h3.json"
 )

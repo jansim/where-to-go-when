@@ -245,7 +245,7 @@ class App extends React.Component {
           output += `\nCategory: ${labels[object.cat]}`
         }
         if (object[month_short]) {
-          output += `avg. 🌡️: ${parseInt(object[month_short])} °C`
+          output += `🌡️: ${object[month_short + '_min']} to ${object[month_short + '_max']} °C (avg: ${parseInt(object[month_short])} °C)`
         }
         return output
       }
