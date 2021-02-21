@@ -128,18 +128,20 @@ categories.map(cat => {
   category_state[cat.id] = true
 })
 
-// Don't pass data as a prop, to keep the react devtools usable
-let data = null
-
 class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      data: null,
       zoomedIn: INITIAL_VIEW_STATE.zoom > ZOOMED_IN_THRESHOLD,
       ...category_state
     };
 
     this.handleInputChange = this.handleInputChange.bind(this);
+    this.last_state = {}
+
+    this.filterData = this.filterData.bind(this);
+    this.filterData()
   }
 
   handleInputChange(event) {
@@ -150,6 +152,29 @@ class App extends React.Component {
     this.setState({
       [name]: value
     });
+
+    this.filterData()
+  }
+
+  filterData () {
+    if (!this.props.full_data) return
+
+    // Set this to true from the beginning, when data is not yet loaded!
+    let changed = !this.state.data
+    categories.map(cat => {
+      if (this.state[cat.id] !== this.last_state[cat.id]) {
+        changed = true
+        this.last_state[cat.id] = this.state[cat.id]
+      }
+    })
+
+    if (changed) {
+      this.setState({data: this.props.full_data.filter(row => this.state[row.cat])})
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    this.filterData()
   }
 
   render() {
@@ -166,21 +191,18 @@ class App extends React.Component {
           let cat = value && value.source && value.source.cat
           cat_counts[cat] = (cat_counts[cat] || 0) + 1
         })
-        let output = `${agg_count} points.\n`
+        let output = `${agg_count} 📍\n`
         Object.keys(cat_counts).map(function(key, index) {
           output += `\n${emojis[key] || key}: ${cat_counts[key]}`
         })
         return output
       } else {
         let output = `${object.title}\n`
-        if (object.phone) {
-          output += `\ntel: ${object.phone}`
+        if (object.description) {
+          output += `\n${object.description}`
         }
-        if (object.url) {
-          output += `\nurl: ${object.url}`
-        }
-        if (object.cat) {
-          output += `\ncategory: ${object.cat}`
+        if (object.cat && labels[object.cat]) {
+          output += `\ncategory: ${labels[object.cat]}`
         }
         return output
       }
@@ -193,9 +215,9 @@ class App extends React.Component {
 
       colorRange,
       coverage,
-      data,
+      data: this.state.data,
       elevationRange: [0, 2500],
-      elevationScale: data && data.length ? 120 : 0,
+      elevationScale: this.data && this.data.length ? 120 : 0,
       extruded: true,
       getPosition: d => [Number(d.lon || d.lng), Number(d.lat)],
       pickable: true,
@@ -210,7 +232,7 @@ class App extends React.Component {
 
     const iconLayer = new IconLayer({
       id: 'IconLayer',
-      data,
+      data: this.state.data,
       visible: this.state.zoomedIn,
 
       /* props from IconLayer class */
@@ -264,36 +286,6 @@ class App extends React.Component {
                 </label>
               ))
             }
-
-              {/* <label>
-                <input type="checkbox" name="camping" checked={state['camping']} onChange={handleInputChange}/>
-                <span> 🏕️ Camping! </span>
-              </label>
-
-              <label>
-                <input type="checkbox" name="see" checked={state['see']} onChange={handleInputChange}/>
-                <span> ✨ Sightseeing </span>
-              </label>
-
-              <label>
-                <input type="checkbox" name="ao" checked={state['ao']} onChange={handleInputChange}/>
-                <span> 👻 Obscure Sightseeing </span>
-              </label>
-
-              <label>
-                <input type="checkbox" name="do" checked={state['do']} onChange={handleInputChange}/>
-                <span> 🏃 Activities </span>
-              </label>
-
-              <label>
-                <input type="checkbox" name="climbing" checked={state['climbing']} onChange={handleInputChange}/>
-                <span> 🧗 Climbing </span>
-              </label>
-
-              <label>
-                <input type="checkbox" name="city" checked={state['city']} onChange={handleInputChange}/>
-                <span> 🏙️ City trips </span>
-              </label> */}
           </div>
         </div>
 
@@ -320,8 +312,8 @@ export function renderToDOM(container) {
 
   require('d3-request').csv(DATA_URL, (error, response) => {
     if (!error) {
-      data = response;
-      render(<App/>, container);
+      const full_data = response;
+      render(<App full_data={full_data}/>, container);
     } else {
       console.error(error)
     }
