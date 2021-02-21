@@ -13,7 +13,7 @@ for (i in ao$id) {
     writeLines(readLines(con), fileConn)
     close(fileConn)
     
-    Sys.sleep(0.1)
+    Sys.sleep(0.2)
   }
 }
 

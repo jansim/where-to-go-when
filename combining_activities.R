@@ -91,7 +91,7 @@ ao <- ao_points %>%
   ) %>% 
   mutate(
     cat = "ao",
-    description = ao$subtitle
+    description = ao$url
   )
 
 # ==== Combining Data ====
