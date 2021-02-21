@@ -217,7 +217,7 @@ class App extends React.Component {
       coverage,
       data: this.state.data,
       elevationRange: [0, 2500],
-      elevationScale: this.data && this.data.length ? 120 : 0,
+      elevationScale: this.state.data && this.state.data.length ? 120 : 0,
       extruded: true,
       getPosition: d => [Number(d.lon || d.lng), Number(d.lat)],
       pickable: true,
