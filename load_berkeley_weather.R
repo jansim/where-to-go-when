@@ -46,4 +46,38 @@ ggplot(temperatures_last_year) +
   geom_point(aes(x = lon, y = lat, color = july))
 
 
-jsonlite::write_json(temperatures_last_year, path = "data_cleaned/avg_temp_2020.json")
+jsonlite::write_json(temperatures_last_year, path = "web/static/data_cleaned/avg_temp_2020.json")
+
+# Create spatial regions for temperature via H3 index
+# remotes::install_github("crazycapivara/h3forr")
+library(h3forr)
+
+points <- temperatures_last_year %>% 
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+hex <- geo_to_h3(points, res = 2)
+
+h3_to_geo_boundary(hex) %>% 
+  geo_boundary_to_sf %>% 
+  plot()
+
+temp_h3 <- temperatures_last_year %>%
+  select(-lat, -lon) %>%
+  mutate(hex)
+
+# Mean number of obs per bin
+temp_h3 %>% count(hex) %>% pull(n) %>% mean()
+
+hex_temp <- temp_h3 %>% 
+  group_by(hex) %>% 
+  summarise(across(everything(), ~ mean(.)))
+
+ggplot(hex_temp$hex %>% h3_to_geo_boundary() %>% geo_boundary_to_sf()) +
+  geom_sf(aes(fill = hex_temp$july))
+
+ggplot(hex_temp$hex %>% h3_to_geo_boundary() %>% geo_boundary_to_sf()) +
+  geom_sf(aes(fill = hex_temp$jan))
+
+jsonlite::write_json(
+  hex_temp,
+  path = "web/static/data_cleaned/avg_temp_2020_h3.json"
+)
