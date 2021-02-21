@@ -185,6 +185,7 @@ class App extends React.Component {
   }
 
   render() {
+    let month_short = months[this.state.month]
     function getTooltip({object}) {
       if (!object) {
         return null;
@@ -204,12 +205,18 @@ class App extends React.Component {
         })
         return output
       } else {
-        let output = `${object.title}\n`
+        let output = ''
+        if (object.title) {
+          output += `${object.title}`
+        }
         if (object.description) {
           output += `\n${object.description}`
         }
         if (object.cat && labels[object.cat]) {
-          output += `\ncategory: ${labels[object.cat]}`
+          output += `\nCategory: ${labels[object.cat]}`
+        }
+        if (object[month_short]) {
+          output += `avg. 🌡️: ${parseInt(object[month_short])} °C`
         }
         return output
       }
@@ -297,6 +304,7 @@ class App extends React.Component {
       getHexagon: d => d.hex,
       stroked: false,
       extruded: false,
+      pickable: true,
       getFillColor: d => temperatureColorScale(d[months[this.state.month]]),
       opacity: 0.1,
       updateTriggers: {
