@@ -1,6 +1,17 @@
 library(tidyverse)
 library(rjson)
 library(jsonlite)
+library(curl)
+
+### curl experiments ###
+#h <- new_handle(copypostfields = "moo=moomooo")
+#handle_setheaders(h,
+                  #"Content-Type" = "text/moo",
+                  #"Cache-Control" = "no-cache",
+                  #"User-Agent" = "A cow"
+#)
+                  
+
 
 # loading datasets
 wiki <- read_csv(
@@ -24,6 +35,25 @@ mp_routes <- read_csv("data/mp_routes.csv")
 
 ao <- read_json("data/ao.json", simplifyVector = TRUE)
 
+for (i in ao$id) {
+  path <- paste0("data/ao_JSON_files/output",i, ".json")
+  if (!file.exists(path)) {
+    print(path)
+    fileConn<-file(path)
+    con <- curl(paste0("https://www.atlasobscura.com/places/", i,".json?place_only=1"))
+    writeLines(readLines(con), fileConn)
+    close(fileConn)
+  
+    Sys.sleep(0.1)
+  }
+}
+
+
+ao_web_infos <- data.frame()
+for (path in list.files("data/ao_JSON_files", full.names = TRUE)) {
+  ao_web_infos <- rbind(ao_web_infos, read_json(path))
+}
+  
 # filtering activities
 wiki <- wiki %>%
   filter(!is.na(lat), !is.na(lon)) %>%
