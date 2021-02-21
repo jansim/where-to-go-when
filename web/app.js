@@ -126,6 +126,7 @@ const upperPercentile = 100
 const coverage = 1
 
 const months = ["jan", "feb", "mar", "apr", "may", "june", "july", "aug", "sep", "oct", "nov", "dec"]
+const pretty_months = ["January ❄️", "February 🧑‍💻", "March 🌱", "April ☔️", "May 🐝", "June 🌼", "July 🔥", "August 🌞", "September 🌇", "October 🍂", "November 🥧", "December 🎅"]
 
 // Create state for checkboxes
 const category_state = {}
@@ -328,7 +329,7 @@ class App extends React.Component {
           <br/>
 
           <label>
-            Month: {months[this.state.month]} <br/>
+            Month: {pretty_months[this.state.month]} <br/>
             <input type="range" id="month" name="month" min="0" max="11" value={this.state["month"]} onChange={this.handleInputChange}/>
           </label>
         </div>
