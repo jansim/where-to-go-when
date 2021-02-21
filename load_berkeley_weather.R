@@ -64,15 +64,20 @@ temp_h3 <- temperatures_last_year %>%
   select(-lat, -lon) %>%
   mutate(hex)
 
+# Mean number of obs per bin
 temp_h3 %>% count(hex) %>% pull(n) %>% mean()
 
-ggplot(temp_h3$hex %>% h3_to_geo_boundary() %>% geo_boundary_to_sf()) +
-  geom_sf(aes(fill = temp_h3$july))
+hex_temp <- temp_h3 %>% 
+  group_by(hex) %>% 
+  summarise(across(everything(), ~ mean(.)))
 
-ggplot(temp_h3$hex %>% h3_to_geo_boundary() %>% geo_boundary_to_sf()) +
-  geom_sf(aes(fill = temp_h3$jan))
+ggplot(hex_temp$hex %>% h3_to_geo_boundary() %>% geo_boundary_to_sf()) +
+  geom_sf(aes(fill = hex_temp$july))
+
+ggplot(hex_temp$hex %>% h3_to_geo_boundary() %>% geo_boundary_to_sf()) +
+  geom_sf(aes(fill = hex_temp$jan))
 
 jsonlite::write_json(
-  temp_h3,
+  hex_temp,
   path = "web/static/data_cleaned/avg_temp_2020_h3.json"
 )

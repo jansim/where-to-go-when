@@ -103,7 +103,8 @@ const iconMapping = [
     x: (index - 1) * 160,
     y: 0,
     width: 160,
-    height: 160
+    height: 160,
+    anchorY: 160
   }
   return map
 })
@@ -289,19 +290,17 @@ class App extends React.Component {
         [254,178,76],
         [240,59,32]
       ]);
-    // To get deck.gl to recognize the prop change
-    const getFillColorFunctions = months.map(month => {
-      return (d) => temperatureColorScale(d[month])
-    })
     const h3Layer = new H3HexagonLayer({
       id: 'coverage',
       data: 'data_cleaned/avg_temp_2020_h3.json',
       getHexagon: d => d.hex,
       stroked: false,
       extruded: false,
-      // getFillColor: d => temperatureColorScale(d[months[this.state.month]]),
-      getFillColor: getFillColorFunctions[this.state.month],
-      opacity: 0.1
+      getFillColor: d => temperatureColorScale(d[months[this.state.month]]),
+      opacity: 0.1,
+      updateTriggers: {
+        getFillColor: this.state.month
+      }
     });
 
     const layers = [
@@ -326,8 +325,10 @@ class App extends React.Component {
             }
           </div>
 
+          <br/>
+
           <label>
-            Month: {months[this.state.month]}
+            Month: {months[this.state.month]} <br/>
             <input type="range" id="month" name="month" min="0" max="11" value={this.state["month"]} onChange={this.handleInputChange}/>
           </label>
         </div>
