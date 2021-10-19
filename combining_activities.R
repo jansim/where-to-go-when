@@ -91,7 +91,7 @@ ao <- ao_points %>%
   ) %>% 
   mutate(
     cat = "ao",
-    description = ao$url
+    description = url
   )
 
 # ==== Combining Data ====
@@ -105,3 +105,9 @@ combinedData <- rbind(
 #saving data
 write_csv(combinedData, "web/static/data_cleaned/combined_activities.csv", na = "")
 
+# Split into separate CSVs
+for (cat_name in unique(combinedData$cat)) {
+  combinedData %>% 
+    filter(cat == cat_name) %>% 
+    write_csv(paste0("web/static/data_cleaned/split/", cat_name, ".csv"), na = "")  
+}

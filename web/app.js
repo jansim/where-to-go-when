@@ -7,6 +7,7 @@ import {IconLayer} from '@deck.gl/layers';
 import {H3HexagonLayer} from '@deck.gl/geo-layers';
 import DeckGL from '@deck.gl/react';
 import {scaleLinear} from 'd3-scale';
+import { csv } from 'd3-fetch'
 
 import "./style.css";
 
@@ -14,6 +15,16 @@ import "./style.css";
 const DATA_URL = 'data_cleaned/combined_activities.csv';
 // const DATA_URL = 'data_cleaned/heatmap-data.csv';
 // const DATA_URL = 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/3d-heatmap/heatmap-data.csv'; // eslint-disable-line
+
+const DATA_SOURCES = {
+  camping: 'camping.csv',
+  see: 'see.csv',
+  ao: 'ao.csv',
+  do: 'do.csv',
+  climbing: 'climbing.csv',
+  city: 'city.csv'
+}
+const DATA_DIRECTORY = 'data_cleaned/split/'
 
 const categories = [
   {
@@ -39,7 +50,7 @@ const categories = [
   {
     id: "climbing",
     emoji: "🧗",
-    label: "Climbing"
+    label: "Climbing (US)"
   },
   {
     id: "city",
@@ -158,8 +169,9 @@ const pretty_months = ["January ❄️", "February 🧑‍💻", "March 🌱", "
 
 // Create state for checkboxes
 const category_state = {}
+const DISABLED_CATEGORIES = ['climbing', 'camping', 'ao']
 categories.map(cat => {
-  category_state[cat.id] = true
+  category_state[cat.id] = !DISABLED_CATEGORIES.includes(cat.id)
 })
 
 class App extends React.Component {
@@ -167,6 +179,8 @@ class App extends React.Component {
     super(props);
     this.state = {
       month: (new Date).getMonth(),
+      datasets: {},
+      loadingDatasets: [],
       data: null,
       zoomedIn: INITIAL_VIEW_STATE.zoom > ZOOMED_IN_THRESHOLD,
       temp_mode: temperatureModes[0].id,
@@ -177,7 +191,12 @@ class App extends React.Component {
     this.last_state = {}
 
     this.filterData = this.filterData.bind(this);
-    this.filterData()
+    this.updateDatasets = this.updateDatasets.bind(this);
+  }
+
+  componentDidMount() {
+    // Load data
+    this.updateDatasets()
   }
 
   handleInputChange(event) {
@@ -187,25 +206,62 @@ class App extends React.Component {
 
     this.setState({
       [name]: value
+    }, () => {
+      // Update datasets after state has been updated
+      this.updateDatasets()
+      this.filterData()
     });
+  }
 
-    this.filterData()
+  async updateDatasets () {
+    for (const [key, value] of Object.entries(DATA_SOURCES)) {
+
+      // Check whether this dataset is active
+      if (this.state[key]) {
+        // Check whether data is not yet loaded or not currently loading?
+        if (!(key in this.state.datasets) && !this.state.loadingDatasets[key]) {
+          // Mark this dataset as currently loading
+          let loadingDatasets = { ...this.state.loadingDatasets }
+          loadingDatasets[key] = true
+          this.setState({ loadingDatasets })
+
+          // Wait for data to come in
+          const new_data = await csv(DATA_DIRECTORY + value)
+          const datasets = { ...this.state.datasets }
+          datasets[key] = new_data
+
+          loadingDatasets = { ...this.state.loadingDatasets }
+          loadingDatasets[key] = false
+
+          // Update state with new objects, to deal with react weirdness
+          this.setState({ loadingDatasets, datasets })
+
+          this.filterData()
+        }
+      }
+    }
   }
 
   filterData () {
-    if (!this.props.full_data) return
-
     // Set this to true from the beginning, when data is not yet loaded!
     let changed = !this.state.data
     categories.map(cat => {
-      if (this.state[cat.id] !== this.last_state[cat.id]) {
+      if (this.state[cat.id] !== this.last_state[cat.id] && this.state.datasets[cat.id]) {
         changed = true
         this.last_state[cat.id] = this.state[cat.id]
       }
     })
 
     if (changed) {
-      this.setState({data: this.props.full_data.filter(row => this.state[row.cat])})
+      let combined_data = []
+
+      for (const [key, dataset] of Object.entries(this.state.datasets)) {
+        if (this.state[key]) {
+          combined_data = combined_data.concat(dataset)
+        }
+      }
+
+      this.setState({data: combined_data})
     }
   }
 
@@ -378,7 +434,7 @@ class App extends React.Component {
               categories.map(cat => (
                 <label key={`check-${cat.id}`}>
                   <input type="checkbox" name={cat.id} checked={this.state[cat.id]} onChange={this.handleInputChange}/>
-                  <span> {`${cat.emoji} ${cat.label}`}</span>
+                  <span> {`${cat.emoji} ${this.state.loadingDatasets[cat.id] ? 'loading..' : cat.label}`}</span>
                 </label>
               ))
             }
@@ -424,14 +480,5 @@ class App extends React.Component {
 export default App
 
 export function renderToDOM(container) {
-  render(<App />, container);
-
-  require('d3-request').csv(DATA_URL, (error, response) => {
-    if (!error) {
-      const full_data = response;
-      render(<App full_data={full_data}/>, container);
-    } else {
-      console.error(error)
-    }
-  });
+  render(<App />, container)
 }
