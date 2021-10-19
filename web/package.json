@@ -8,6 +8,7 @@
     "build": "webpack"
   },
   "dependencies": {
+    "d3-fetch": "^3.0.1",
     "d3-scale": "^3.2.3",
     "deck.gl": "^8.4.0",
     "react": "^16.3.0",
